@@ -13,7 +13,7 @@ Game = function(rWidth)
 	field = new Field(rWidth, width);
 	speed = 500; // One update per second
 
-	for(var i = 0; i < width; i++)
+	for(var i = -4; i < width + 4; i++)
 	{
 		gameField[i] = []
 		for(var j = 0; j < height; j++)
@@ -21,11 +21,6 @@ Game = function(rWidth)
 			gameField[i][j] = 0;
 		}
 	}
-	gameField[4][4] = 1;
-	gameField[4][5] = 1;
-	gameField[4][8] = 1;
-	gameField[4][9] = 1;
-
 
 	this.start = function()
 	{
@@ -35,22 +30,7 @@ Game = function(rWidth)
 
 	function update()
 	{
-		//Figure.draw();
-		for(var j = height - 1; j >= 0; j--)
-		{
-			for(var i = 0; i < width; i++)
-			{
-				if(gameField[i][j] == 1 && gameField[i][j+1] != 2 && j < height - 1)
-				{
-					gameField[i][j] = 0;
-					gameField[i][j+1] = 1;
-				}
-				else if(gameField[i][j] == 1)
-				{
-					gameField[i][j] = 2;
-				}
-			}
-		}
+		Figure.update();
 	}
 
 	function draw()
@@ -66,32 +46,150 @@ Game = function(rWidth)
 
 	Figure = 
 	{
-		position: [width / 2, 0],
-		form: [[1, 1, 0],
-				[0, 1, 0],
-				[0, 1, 0]],
+		position: [3, -3],
+		form: [[1, 1, 1, 1],
+				[0, 0, 0, 0],
+				[0, 0, 0, 0],
+				[0, 0, 0, 0]],
 
 		create: function()
 		{
 
 		},
 
-		moveDown: function()
+		update: function()
 		{
-			this.position[1]++;
+			stop = !this.act('down');
+			if(stop)
+			{
+				for(var i = 0; i < 4; i++)
+				{
+					for(var j = 0; j < 4; j++)
+					{
+						gameField[this.position[0] + i][this.position[1] + j] = 
+							gameField[this.position[0] + i][this.position[1] + j] == 1 ? 2 : 
+							gameField[this.position[0] + i][this.position[1] + j];
+					}
+				}
+				this.position = [3,-4];
+				stop = false;
+				return;
+			}
+			this.clear();
+			this.draw();
 		},
 
 		draw: function()
 		{
-			for(var i = 0; i < 3; i++)
+			for(var i = 0; i < 4; i++)
 			{
-				for(var j = 0; j < 3; j++)
+				for(var j = 0; j < 4; j++)
 				{
-					gameField[this.position[0] + i, this.position[1] + j] = this.form[i,j];
+					if(this.form[j][i] == 1)
+					{
+						gameField[this.position[0] + i][this.position[1] + j] = this.form[j][i];
+					}
 				}
 			}
+		},
+
+		act: function(direction)
+		{
+			this.clear();
+			switch(direction)
+			{
+				case 'left':
+					for(var i = 0; i < 4; i++)
+					{
+						for(var j = 0; j < 4; j++)
+						{
+							if(this.form[j][i] == 1 && (this.position[0] + i == 0 || gameField[this.position[0] + i - 1][this.position[1] + j] == 2))
+							{
+								this.draw();
+								return false;
+							}
+						}
+					}
+					this.position[0]--;
+				break;
+				case 'right':
+					for(var i = 0; i < 4; i++)
+					{
+						for(var j = 0; j < 4; j++)
+						{
+							if(this.form[j][i] == 1 && (this.position[0] + i >= width - 1 || gameField[this.position[0] + i + 1][this.position[1] + j] == 2))
+							{
+								this.draw();
+								return false;
+							}
+						}
+					}
+					this.position[0]++;
+				break;
+				case 'down': 
+					for(var i = 0; i < 4; i++)
+					{
+						for(var j = 0; j < 4; j++)
+						{
+							if(this.form[j][i] == 1 && (this.position[1] + j + 1 == height || gameField[this.position[0] + i][this.position[1] + j + 1] == 2))
+							{
+								this.draw();
+								return false;
+							}
+						}
+					}
+					this.position[1]++;
+				break;
+				case 'up':
+					this.rotate();
+				break;
+				default: break;
+			}
+			this.draw();
+			return true;
+		},
+
+		clear: function()
+		{
+			for(var i = 0; i < 4; i++)
+			{
+				for(var j = 0; j < 4; j++)
+				{
+					if(this.position[0] + i < width && gameField[this.position[0] + i][this.position[1] + j] == 1)
+					{
+						gameField[this.position[0] + i][this.position[1] + j] = 0;
+					}
+				}
+			}
+		},
+
+		rotate: function()
+		{
+			newForm = [];
+			n = this.form.length;
+			for(var i = 0; i < n; i++)
+			{
+				newForm[i] = [];
+				for(var j = 0; j < n; j++)	
+				{
+					newForm[i][j] = this.form[j][n - i - 1];
+				}
+			}
+			this.form = newForm;
+			console.log(this.form);
 		}
 	}
+
+	$('body').bind(
+		'keydown',
+		function(e){
+			direction = e.keyCode == 37 ? 'left' :
+						e.keyCode == 38 ? 'up' :
+						e.keyCode == 39 ? 'right' :
+						'down';
+			Figure.act(direction);
+		}
+	);
 }
 
 Field = function(rWidth, fWidth)
